@@ -11,10 +11,14 @@ export default defineConfig({
   },
   server: {
     port: 3000,
+    allowedHosts: [
+      'fitcore-q17x.onrender.com',
+    ],
     proxy: {
       '/api': {
-        target: 'http://backend:8000',
+        target: 'https://fitcore-backend-4746.onrender.com',
         changeOrigin: true,
+        secure: true,
       },
     },
   },
