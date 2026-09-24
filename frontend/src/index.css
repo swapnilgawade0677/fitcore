@@ -1,0 +1,109 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-dark-200;
+  }
+  body {
+    @apply bg-dark-50 text-dark-900 antialiased;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn bg-primary-500 text-black font-semibold hover:bg-primary-600 focus:ring-primary-500;
+  }
+  .btn-accent {
+    @apply btn bg-accent-400 text-black font-semibold hover:bg-accent-500 focus:ring-accent-400;
+  }
+  .btn-secondary {
+    @apply btn bg-dark-100 text-dark-900 hover:bg-dark-200 focus:ring-dark-500;
+  }
+  .btn-danger {
+    @apply btn bg-red-600 text-white hover:bg-red-700 focus:ring-red-500;
+  }
+  .btn-ghost {
+    @apply btn bg-transparent text-dark-600 hover:bg-dark-200 hover:text-dark-900 focus:ring-dark-500;
+  }
+  .input {
+    @apply w-full px-4 py-2 rounded-lg border border-dark-300 bg-dark-850 text-dark-900 placeholder-dark-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200;
+  }
+  .input option {
+    @apply bg-dark-100 text-dark-900;
+  }
+  .input-error {
+    @apply border-red-500 focus:ring-red-500;
+  }
+  .label {
+    @apply block text-sm font-medium text-dark-700 mb-1;
+  }
+  .card {
+    @apply bg-dark-100 rounded-xl shadow-sm border border-dark-200 overflow-hidden;
+  }
+  .card-hover {
+    @apply card transition-shadow duration-300 hover:shadow-md;
+  }
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  .badge-success {
+    @apply badge bg-green-100 text-green-800;
+  }
+  .badge-warning {
+    @apply badge bg-yellow-100 text-yellow-800;
+  }
+  .badge-danger {
+    @apply badge bg-red-100 text-red-800;
+  }
+  .badge-info {
+    @apply badge bg-blue-100 text-blue-800;
+  }
+}
+
+@layer utilities {
+  /* Fail-safe entrance animations (replace JS-driven tweens so content
+     is always visible even if an animation frame never runs) */
+  .login-animate,
+  .register-animate,
+  .not-found-animate,
+  .detail-section,
+  .stat-card,
+  .chart-card {
+    @apply animate-slide-up;
+  }
+  .sidebar-item,
+  .member-row,
+  .trainer-row,
+  .plan-row,
+  .payment-row,
+  .equip-row,
+  .attendance-row,
+  .workout-row,
+  .inquiry-row,
+  .feedback-row {
+    @apply animate-fade-in;
+  }
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.dark.300') transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: theme('colors.dark.300');
+    border-radius: 3px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: theme('colors.dark.400');
+  }
+}
