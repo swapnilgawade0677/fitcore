@@ -34,6 +34,7 @@ from models import (
     WorkoutPlan,
 )
 from schemas import (
+    AdminCreateUserRequest,
     AdminUserUpdate,
     DashboardStats,
     LoginRequest,
@@ -140,6 +141,43 @@ async def list_users(
     query = query.offset(skip).limit(limit).order_by(User.id.desc())
     result = await db.execute(query)
     return result.scalars().all()
+
+
+@admin_router.post("/users", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+async def create_user(
+    user_data: AdminCreateUserRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Admin-provisioned account creation (admin flow).
+
+    - role=admin: creates a second admin/gym-staff login here.
+    - role=member/trainer: rejected with guidance to use POST /members
+      or POST /trainers so the profile row is created together with
+      the login. The admin then shares that email + password.
+    """
+    result = await db.execute(select(User).where(User.email == user_data.email))
+    if result.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    if user_data.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Use POST /members for member accounts and POST /trainers for trainer accounts (got role={user_data.role.value}). This endpoint creates admin accounts only.",
+        )
+
+    user = User(
+        email=user_data.email,
+        hashed_password=get_password_hash(user_data.password),
+        full_name=user_data.full_name,
+        phone=user_data.phone,
+        role=UserRole.ADMIN,
+        is_active=True,
+    )
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+    return user
 
 
 @admin_router.get("/users/{user_id}", response_model=UserResponse)

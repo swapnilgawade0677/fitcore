@@ -3,8 +3,17 @@ import { useAppDispatch, useAppSelector } from '../hooks/useRedux';
 import { fetchTrainers, createTrainer, updateTrainer, deleteTrainer } from '../store/trainersSlice';
 import { fetchMembers } from '../store/membersSlice';
 import toast from 'react-hot-toast';
-import { Plus, Search, Loader2, Edit, Trash2, Dumbbell, Award, DollarSign } from 'lucide-react';
+import { Plus, Search, Loader2, Edit, Trash2, Dumbbell, Award, DollarSign, Copy, KeyRound, RefreshCw } from 'lucide-react';
 import { formatDate, cn } from '../utils/helpers';
+
+function generatePassword(length = 10) {
+  const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789!@#';
+  let out = '';
+  const arr = new Uint32Array(length);
+  crypto.getRandomValues(arr);
+  for (let i = 0; i < length; i++) out += chars[arr[i] % chars.length];
+  return out;
+}
 
 export default function Trainers() {
   const dispatch = useAppDispatch();
@@ -14,6 +23,8 @@ export default function Trainers() {
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingTrainer, setEditingTrainer] = useState<any>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [lastCredentials, setLastCredentials] = useState<{ email: string; password: string } | null>(null);
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
@@ -59,11 +70,13 @@ export default function Trainers() {
       if (editingTrainer) {
         await dispatch(updateTrainer({ id: editingTrainer.id, data })).unwrap();
         toast.success('Trainer updated successfully');
+        setShowModal(false);
       } else {
         await dispatch(createTrainer(data)).unwrap();
-        toast.success('Trainer created successfully');
+        setLastCredentials({ email: formData.email, password: formData.password });
+        toast.success('Trainer created — share the login with the trainer');
+        setShowModal(false);
       }
-      setShowModal(false);
       resetForm();
     } catch (error: any) {
       toast.error(error || 'Operation failed');
@@ -99,6 +112,7 @@ export default function Trainers() {
 
   const resetForm = () => {
     setEditingTrainer(null);
+    setShowPassword(false);
     setFormData({
       full_name: '',
       email: '',
@@ -117,6 +131,12 @@ export default function Trainers() {
     setShowModal(true);
   };
 
+  const copyCredentials = () => {
+    if (!lastCredentials) return;
+    navigator.clipboard.writeText(`Email: ${lastCredentials.email}\nPassword: ${lastCredentials.password}\nLogin at /login`);
+    toast.success('Credentials copied — share with the trainer');
+  };
+
   const assignedMembersCount = (trainerId: number) => {
     return members.filter(m => m.trainer_id === trainerId).length;
   };
@@ -126,13 +146,29 @@ export default function Trainers() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-dark-900">Trainers</h1>
-          <p className="text-dark-500 mt-1">Manage trainer profiles and assignments</p>
+          <p className="text-dark-500 mt-1">Create trainer logins here and share the email + password with them for sign-in</p>
         </div>
         <button onClick={openModal} className="btn-primary">
           <Plus className="w-4 h-4 mr-2" />
           Add Trainer
         </button>
       </div>
+
+      {lastCredentials && (
+        <div className="card p-4 border-primary-500/40 bg-primary-500/5 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+          <div className="flex items-start gap-3">
+            <KeyRound className="w-5 h-5 text-primary-600 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-medium text-dark-900">Share this login with the trainer</p>
+              <p className="text-dark-600">Email: <span className="font-medium">{lastCredentials.email}</span> · Password: <span className="font-medium">{lastCredentials.password}</span></p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={copyCredentials} className="btn-secondary text-sm"><Copy className="w-4 h-4 mr-1" />Copy</button>
+            <button onClick={() => setLastCredentials(null)} className="btn-ghost text-sm">Dismiss</button>
+          </div>
+        </div>
+      )}
 
       <div className="card p-4">
         <div className="relative flex-1">
@@ -274,8 +310,12 @@ export default function Trainers() {
                 </div>
                 {!editingTrainer && (
                   <div>
-                    <label className="label">Password</label>
-                    <input type="password" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} className="input" required minLength={8} />
+                    <label className="label">Login Password — share with trainer</label>
+                    <div className="flex gap-2">
+                      <input type={showPassword ? 'text' : 'password'} value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} className="input flex-1" required minLength={8} />
+                      <button type="button" onClick={() => setFormData({...formData, password: generatePassword()})} className="btn-secondary px-3" title="Generate password"><RefreshCw className="w-4 h-4" /></button>
+                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="btn-secondary px-3">{showPassword ? 'Hide' : 'Show'}</button>
+                    </div>
                   </div>
                 )}
               </div>

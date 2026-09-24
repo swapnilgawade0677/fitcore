@@ -117,10 +117,13 @@ export default function Login() {
           </form>
 
           <div className="mt-6 text-center">
-            <p className="text-dark-600">
-              Don't have an account?{' '}
+            <p className="text-sm text-dark-500">
+              Member or trainer? Use the email + password shared by your gym admin.
+            </p>
+            <p className="text-dark-600 mt-2">
+              Are you a gym owner?{' '}
               <a href="#" className="text-primary-600 hover:text-primary-700 font-medium" onClick={(e) => { e.preventDefault(); navigate('/register'); }}>
-                Sign up
+                Create gym account
               </a>
             </p>
             <p className="mt-2">

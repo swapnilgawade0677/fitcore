@@ -2,6 +2,8 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import type {
   TokenResponse,
   RegisterData,
+  GymRegisterData,
+  AdminCreateUser,
   User,
   AdminUserUpdate,
   Member,
@@ -69,8 +71,15 @@ api.interceptors.response.use(
 export const authApi = {
   login: (email: string, password: string) =>
     api.post<TokenResponse>('/auth/login', { email, password }),
+  // Deprecated: self-registration is disabled on the backend.
+  // Kept for backwards-compat; server returns 403 with guidance.
   register: (data: RegisterData) =>
     api.post<User>('/auth/register', data),
+  // Gym/admin signup: creates the admin account first.
+  registerGym: (data: GymRegisterData) =>
+    api.post<User>('/auth/register-gym', data),
+  getSetupStatus: () =>
+    api.get<{ admin_exists: boolean }>('/auth/setup-status'),
   getMe: () =>
     api.get<User>('/auth/me'),
   updateMe: (data: Partial<User>) =>
@@ -192,6 +201,8 @@ export const adminApi = {
     api.put<User>(`/admin/users/${id}`, data),
   deleteUser: (id: number) =>
     api.delete(`/admin/users/${id}`),
+  createUser: (data: AdminCreateUser) =>
+    api.post<User>('/admin/users', data),
   resetPassword: (id: number, new_password: string) =>
     api.post<User>(`/admin/users/${id}/reset-password`, { new_password }),
 };

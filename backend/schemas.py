@@ -21,7 +21,33 @@ class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
     full_name: Optional[str] = Field(None, min_length=2, max_length=255)
     phone: Optional[str] = Field(None, max_length=20)
-    is_active: Optional[bool] = None
+
+
+class GymRegisterRequest(BaseModel):
+    """Public gym/admin signup - creates the gym owner account.
+
+    This is the ONLY public registration endpoint. Members and trainers
+    cannot self-register; the admin creates their email + password
+    via POST /members, POST /trainers (or POST /admin/users for admins)
+    and shares those credentials with them.
+    """
+    email: EmailStr
+    password: str = Field(..., min_length=8, max_length=100)
+    full_name: str = Field(..., min_length=2, max_length=255)
+    phone: Optional[str] = Field(None, max_length=20)
+
+
+class AdminCreateUserRequest(BaseModel):
+    """Admin-provisioned login for another admin.
+
+    Members/trainers must be created via POST /members and POST /trainers
+    so their profiles are created together with the login.
+    """
+    email: EmailStr
+    password: str = Field(..., min_length=8, max_length=100)
+    full_name: str = Field(..., min_length=2, max_length=255)
+    phone: Optional[str] = Field(None, max_length=20)
+    role: UserRole = UserRole.ADMIN
 
 
 class AdminUserUpdate(BaseModel):

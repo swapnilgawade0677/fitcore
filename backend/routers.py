@@ -10,6 +10,7 @@ from models import User, Member, Trainer, MembershipPlan, Attendance, Payment, E
 from models import UserRole, MembershipStatus, PaymentStatus, EquipmentStatus
 from schemas import (
     UserCreate, UserUpdate, UserResponse,
+    GymRegisterRequest,
     MemberCreate, MemberUpdate, MemberResponse,
     TrainerCreate, TrainerUpdate, TrainerResponse,
     MembershipPlanCreate, MembershipPlanUpdate, MembershipPlanResponse,
@@ -49,27 +50,55 @@ async def login(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-@router.post("/auth/register", response_model=UserResponse)
-async def register(
-    user_data: UserCreate,
+@router.post("/auth/register-gym", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+async def register_gym(
+    gym_data: GymRegisterRequest,
     db: AsyncSession = Depends(get_db)
 ):
-    result = await db.execute(select(User).where(User.email == user_data.email))
+    """Public gym setup: create the admin/gym-owner account.
+
+    Flow:
+    1. Gym owner calls this once to create their admin account.
+    2. Admin logs in and provisions member/trainer logins via
+       POST /members and POST /trainers (email + password).
+    3. Admin shares those credentials with the member/trainer,
+       who then logs in via POST /auth/login.
+    """
+    result = await db.execute(select(User).where(User.email == gym_data.email))
     if result.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    hashed_password = get_password_hash(user_data.password)
+    hashed_password = get_password_hash(gym_data.password)
     user = User(
-        email=user_data.email,
+        email=gym_data.email,
         hashed_password=hashed_password,
-        full_name=user_data.full_name,
-        phone=user_data.phone,
-        role=user_data.role
+        full_name=gym_data.full_name,
+        phone=gym_data.phone,
+        role=UserRole.ADMIN,
     )
     db.add(user)
     await db.commit()
     await db.refresh(user)
     return user
+
+
+@router.get("/auth/setup-status")
+async def setup_status(db: AsyncSession = Depends(get_db)):
+    """Public: check whether a gym admin already exists (for setup UX)."""
+    admin_count = await db.scalar(select(func.count(User.id)).where(User.role == UserRole.ADMIN))
+    return {"admin_exists": bool(admin_count and admin_count > 0)}
+
+
+@router.post("/auth/register", response_model=UserResponse)
+async def register(
+    user_data: UserCreate,
+    db: AsyncSession = Depends(get_db)
+):
+    # Self-registration is disabled. Admins provision all accounts.
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Self-registration is disabled. Ask your gym admin for login credentials. Gym owners: use POST /auth/register-gym to create the admin account.",
+    )
 
 
 @router.get("/auth/me", response_model=UserResponse)
@@ -83,6 +112,8 @@ async def update_current_user(
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
 ):
+    # NOTE: is_active / role cannot be changed here (prevents self-lockout
+    # and privilege escalation). Admins manage status/roles via /admin/users.
     if user_update.email and user_update.email != current_user.email:
         result = await db.execute(select(User).where(User.email == user_update.email))
         if result.scalar_one_or_none():
@@ -92,8 +123,6 @@ async def update_current_user(
         current_user.full_name = user_update.full_name
     if user_update.phone is not None:
         current_user.phone = user_update.phone
-    if user_update.is_active is not None:
-        current_user.is_active = user_update.is_active
 
     await db.commit()
     await db.refresh(current_user)
@@ -106,6 +135,12 @@ async def create_member(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(UserRole.ADMIN))
 ):
+    """Admin-provisioned member signup.
+
+    Admin sets the member's email + password (member_data.user) and shares
+    those credentials with the member, who then logs in via POST /auth/login.
+    Any client-supplied role is ignored - the login is always MEMBER.
+    """
     result = await db.execute(select(User).where(User.email == member_data.user.email))
     if result.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -233,6 +268,12 @@ async def create_trainer(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(UserRole.ADMIN))
 ):
+    """Admin-provisioned trainer signup.
+
+    Admin sets the trainer's email + password (trainer_data.user) and shares
+    those credentials with the trainer, who then logs in via POST /auth/login.
+    Any client-supplied role is ignored - the login is always TRAINER.
+    """
     result = await db.execute(select(User).where(User.email == trainer_data.user.email))
     if result.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Email already registered")

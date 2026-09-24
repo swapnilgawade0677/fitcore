@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { User, AdminUserUpdate } from '../types';
+import { User, AdminUserUpdate, AdminCreateUser } from '../types';
 import { adminApi } from '../services/api';
 
 interface UsersState {
@@ -50,14 +50,25 @@ export const deleteUser = createAsyncThunk(
   }
 );
 
-export const resetUserPassword = createAsyncThunk(
-  'users/resetPassword',
+export const resetUserPassword = createAsyncThunk('users/resetPassword',
   async ({ id, new_password }: { id: number; new_password: string }, { rejectWithValue }) => {
     try {
       const response = await adminApi.resetPassword(id, new_password);
       return response.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.detail || 'Failed to reset password');
+    }
+  }
+);
+
+export const createUser = createAsyncThunk(
+  'users/create',
+  async (data: AdminCreateUser, { rejectWithValue }) => {
+    try {
+      const response = await adminApi.createUser(data);
+      return response.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.detail || 'Failed to create user');
     }
   }
 );
@@ -114,6 +125,18 @@ const usersSlice = createSlice({
         state.isLoading = false;
       })
       .addCase(resetUserPassword.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(createUser.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(createUser.fulfilled, (state, action: PayloadAction<User>) => {
+        state.isLoading = false;
+        state.items.unshift(action.payload);
+      })
+      .addCase(createUser.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
       });

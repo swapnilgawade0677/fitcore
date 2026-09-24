@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../hooks/useRedux';
-import { fetchUsers, updateUser, deleteUser, resetUserPassword } from '../store/usersSlice';
+import { fetchUsers, createUser, updateUser, deleteUser, resetUserPassword } from '../store/usersSlice';
 import toast from 'react-hot-toast';
-import { Search, Loader2, Edit, Trash2, ShieldCheck, KeyRound } from 'lucide-react';
+import { Search, Loader2, Edit, Trash2, ShieldCheck, KeyRound, Plus, Copy } from 'lucide-react';
 import { formatDate, cn } from '../utils/helpers';
 import type { UserRole } from '../types';
 
@@ -20,7 +20,10 @@ export default function Users() {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'member' | 'trainer'>('all');
   const [showModal, setShowModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
+  const [lastCredentials, setLastCredentials] = useState<{ email: string; password: string } | null>(null);
+  const [createData, setCreateData] = useState({ full_name: '', email: '', phone: '', password: 'admin12345' });
   const [formData, setFormData] = useState({
     full_name: '',
     phone: '',
@@ -85,6 +88,25 @@ export default function Users() {
     }
   };
 
+  const handleCreateAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await dispatch(createUser({
+        email: createData.email,
+        password: createData.password,
+        full_name: createData.full_name,
+        phone: createData.phone || null,
+        role: 'admin',
+      })).unwrap();
+      setLastCredentials({ email: createData.email, password: createData.password });
+      toast.success('Admin created — share the login with them');
+      setShowCreateModal(false);
+      setCreateData({ full_name: '', email: '', phone: '', password: 'admin12345' });
+    } catch (e: any) {
+      toast.error(e || 'Failed to create admin');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -92,9 +114,28 @@ export default function Users() {
           <h1 className="text-2xl font-bold text-dark-900 flex items-center gap-2">
             <ShieldCheck className="w-6 h-6 text-primary-500" /> User Management
           </h1>
-          <p className="text-dark-500 mt-1">Admin-only: manage accounts, roles and access</p>
+          <p className="text-dark-500 mt-1">Admin-only: members/trainers are created from their pages; create extra admins here</p>
         </div>
+        <button onClick={() => setShowCreateModal(true)} className="btn-primary">
+          <Plus className="w-4 h-4 mr-2" /> Add Admin
+        </button>
       </div>
+
+      {lastCredentials && (
+        <div className="card p-4 border-primary-500/40 bg-primary-500/5 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+          <div className="flex items-start gap-3">
+            <KeyRound className="w-5 h-5 text-primary-600 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-medium text-dark-900">Share this admin login</p>
+              <p className="text-dark-600">Email: <span className="font-medium">{lastCredentials.email}</span> · Password: <span className="font-medium">{lastCredentials.password}</span></p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => { navigator.clipboard.writeText(`Email: ${lastCredentials.email}\nPassword: ${lastCredentials.password}`); toast.success('Copied'); }} className="btn-secondary text-sm"><Copy className="w-4 h-4 mr-1" />Copy</button>
+            <button onClick={() => setLastCredentials(null)} className="btn-ghost text-sm">Dismiss</button>
+          </div>
+        </div>
+      )}
 
       <div className="card p-4">
         <div className="flex flex-col sm:flex-row gap-4">
@@ -163,6 +204,28 @@ export default function Users() {
           </div>
         )}
       </div>
+
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-fade-in">
+          <div className="bg-dark-100 rounded-2xl shadow-xl border border-dark-200 max-w-md w-full">
+            <div className="p-6 border-b border-dark-200 flex justify-between items-center">
+              <h2 className="text-xl font-semibold">Add Admin</h2>
+              <button onClick={() => setShowCreateModal(false)} className="p-2 rounded-lg text-dark-500 hover:bg-dark-200">✕</button>
+            </div>
+            <form onSubmit={handleCreateAdmin} className="p-6 space-y-4">
+              <p className="text-sm text-dark-500">Creates an admin login. Share the email + password with them. For members/trainers use the Members/Trainers pages.</p>
+              <div><label className="label">Full Name</label><input type="text" value={createData.full_name} onChange={e => setCreateData({ ...createData, full_name: e.target.value })} className="input" required minLength={2} /></div>
+              <div><label className="label">Email</label><input type="email" value={createData.email} onChange={e => setCreateData({ ...createData, email: e.target.value })} className="input" required /></div>
+              <div><label className="label">Phone (optional)</label><input type="text" value={createData.phone} onChange={e => setCreateData({ ...createData, phone: e.target.value })} className="input" /></div>
+              <div><label className="label">Password — share with admin</label><input type="text" value={createData.password} onChange={e => setCreateData({ ...createData, password: e.target.value })} className="input" required minLength={8} /></div>
+              <div className="flex justify-end gap-3 pt-2">
+                <button type="button" onClick={() => setShowCreateModal(false)} className="btn-secondary">Cancel</button>
+                <button type="submit" className="btn-primary" disabled={isLoading}>{isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create Admin'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-fade-in">

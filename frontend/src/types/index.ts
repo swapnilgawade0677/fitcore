@@ -169,6 +169,23 @@ export interface RegisterData {
   role: UserRole;
 }
 
+// New admin-first flow: gym owner self-signup (creates ADMIN account).
+// Members/trainers never self-register - admin creates their credentials.
+export interface GymRegisterData {
+  email: string;
+  password: string;
+  full_name: string;
+  phone?: string;
+}
+
+export interface AdminCreateUser {
+  email: string;
+  password: string;
+  full_name: string;
+  phone?: string | null;
+  role: UserRole;
+}
+
 export interface TokenResponse {
   access_token: string;
   token_type: string;

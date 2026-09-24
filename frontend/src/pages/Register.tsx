@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useAppDispatch } from '../hooks/useRedux';
-import { login, register as registerUser } from '../store/authSlice';
+import { login, registerGym } from '../store/authSlice';
 import toast from 'react-hot-toast';
 import { Dumbbell, Eye, EyeOff, Loader2, User, Mail, Lock, Phone } from 'lucide-react';
 import { cn } from '../utils/helpers';
 
-interface RegisterForm {
+interface GymRegisterForm {
   full_name: string;
   email: string;
   phone: string;
@@ -20,23 +20,22 @@ export default function Register() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
 
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<RegisterForm>();
+  const { register, handleSubmit, watch, formState: { errors } } = useForm<GymRegisterForm>();
   const password = watch('password');
 
-  const onSubmit = async (data: RegisterForm) => {
+  const onSubmit = async (data: GymRegisterForm) => {
     try {
-      await dispatch(registerUser({
+      await dispatch(registerGym({
         email: data.email,
         password: data.password,
         full_name: data.full_name,
         phone: data.phone || undefined,
-        role: 'member',
       })).unwrap();
       await dispatch(login({ email: data.email, password: data.password })).unwrap();
-      toast.success('Account created successfully!');
+      toast.success('Gym account created! Now add members & trainers and share their login with them.');
       navigate('/dashboard');
     } catch (error: any) {
-      toast.error(error || 'Registration failed');
+      toast.error(error || 'Gym registration failed');
     }
   };
 
@@ -49,7 +48,16 @@ export default function Register() {
             <Dumbbell className="w-8 h-8 text-black" />
           </div>
           <h1 className="text-3xl font-bold text-dark-900">Fit<span className="text-primary-600">Core</span></h1>
-          <p className="text-dark-500 mt-1">Create your account</p>
+          <p className="text-dark-500 mt-1">Create your gym (admin) account</p>
+        </div>
+
+        <div className="register-animate mb-4 p-4 bg-primary-500/10 border border-primary-500/30 rounded-xl text-sm text-dark-700">
+          <p className="font-medium">How it works</p>
+          <ol className="list-decimal ml-5 mt-1 space-y-1 text-dark-600">
+            <li>You create the gym admin account here.</li>
+            <li>You add members/trainers from the dashboard with their email + password.</li>
+            <li>Share those credentials with them — they sign in, no self-registration.</li>
+          </ol>
         </div>
 
         {/* Register Form */}
@@ -67,14 +75,14 @@ export default function Register() {
                   autoComplete="name"
                   {...register('full_name', { required: 'Full name is required', minLength: { value: 2, message: 'Name must be at least 2 characters' } })}
                   className={cn('input pl-10', errors.full_name && 'input-error')}
-                  placeholder="John Doe"
+                  placeholder="Gym Owner"
                 />
               </div>
               {errors.full_name && <p className="mt-1 text-sm text-red-600">{errors.full_name.message}</p>}
             </div>
 
             <div>
-              <label htmlFor="email" className="label">Email</label>
+              <label htmlFor="email" className="label">Gym Admin Email</label>
               <div className="relative mt-1">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Mail className="w-5 h-5 text-dark-400" />
@@ -88,7 +96,7 @@ export default function Register() {
                     pattern: { value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i, message: 'Invalid email address' },
                   })}
                   className={cn('input pl-10', errors.email && 'input-error')}
-                  placeholder="you@example.com"
+                  placeholder="owner@mygym.com"
                 />
               </div>
               {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>}
@@ -161,28 +169,18 @@ export default function Register() {
               {errors.confirmPassword && <p className="mt-1 text-sm text-red-600">{errors.confirmPassword.message as string}</p>}
             </div>
 
-            <div className="flex items-start gap-2">
-              <input type="checkbox" id="terms" required className="mt-1 w-4 h-4 rounded border-dark-300 text-primary-600 focus:ring-primary-500" />
-              <label htmlFor="terms" className="text-sm text-dark-600">
-                I agree to the{' '}
-                <a href="#" className="text-primary-600 hover:text-primary-700">Terms of Service</a>{' '}
-                and{' '}
-                <a href="#" className="text-primary-600 hover:text-primary-700">Privacy Policy</a>
-              </label>
-            </div>
-
             <button
               type="submit"
               className="btn-primary w-full py-3"
             >
               <Loader2 className="w-5 h-5 animate-spin mr-2" style={{ display: 'none' }} />
-              Create Account
+              Create Gym Account
             </button>
           </form>
 
           <div className="mt-6 text-center">
             <p className="text-dark-600">
-              Already have an account?{' '}
+              Already have a gym account?{' '}
               <a href="#" className="text-primary-600 hover:text-primary-700 font-medium" onClick={(e) => { e.preventDefault(); navigate('/login'); }}>
                 Sign in
               </a>

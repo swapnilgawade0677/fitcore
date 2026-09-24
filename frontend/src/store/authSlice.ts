@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { User, TokenResponse, RegisterData } from '../types';
+import { User, TokenResponse, RegisterData, GymRegisterData } from '../types';
 import { authApi, adminApi } from '../services/api';
 
 interface AuthState {
@@ -39,6 +39,18 @@ export const register = createAsyncThunk(
       return response.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.detail || 'Registration failed');
+    }
+  }
+);
+
+export const registerGym = createAsyncThunk(
+  'auth/registerGym',
+  async (data: GymRegisterData, { rejectWithValue }) => {
+    try {
+      const response = await authApi.registerGym(data);
+      return response.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.detail || 'Gym registration failed');
     }
   }
 );
@@ -110,6 +122,17 @@ const authSlice = createSlice({
         state.isLoading = false;
       })
       .addCase(register.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(registerGym.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(registerGym.fulfilled, (state) => {
+        state.isLoading = false;
+      })
+      .addCase(registerGym.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
       })

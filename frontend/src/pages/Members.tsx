@@ -5,9 +5,18 @@ import { fetchMembers, createMember, updateMember, deleteMember } from '../store
 import { fetchPlans } from '../store/plansSlice';
 import { fetchTrainers } from '../store/trainersSlice';
 import toast from 'react-hot-toast';
-import { Plus, Search, Filter, Loader2, Edit, Trash2, Mail, Phone } from 'lucide-react';
+import { Plus, Search, Filter, Loader2, Edit, Trash2, Mail, Phone, Copy, KeyRound, RefreshCw } from 'lucide-react';
 import { formatDate, getStatusColor, cn } from '../utils/helpers';
 import { MembershipStatus } from '../types';
+
+function generatePassword(length = 10) {
+  const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789!@#';
+  let out = '';
+  const arr = new Uint32Array(length);
+  crypto.getRandomValues(arr);
+  for (let i = 0; i < length; i++) out += chars[arr[i] % chars.length];
+  return out;
+}
 
 export default function Members() {
   const navigate = useNavigate();
@@ -20,6 +29,8 @@ export default function Members() {
   const [statusFilter, setStatusFilter] = useState<MembershipStatus | 'all'>('all');
   const [showModal, setShowModal] = useState(false);
   const [editingMember, setEditingMember] = useState<any>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [lastCredentials, setLastCredentials] = useState<{ email: string; password: string } | null>(null);
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
@@ -56,6 +67,7 @@ export default function Members() {
           },
         })).unwrap();
         toast.success('Member updated successfully');
+        setShowModal(false);
       } else {
         await dispatch(createMember({
           user: { email: formData.email, password: formData.password, full_name: formData.full_name, phone: formData.phone, role: 'member' },
@@ -63,9 +75,11 @@ export default function Members() {
           membership_plan_id: parseInt(formData.membership_plan_id),
           trainer_id: formData.trainer_id ? parseInt(formData.trainer_id) : undefined,
         })).unwrap();
-        toast.success('Member created successfully');
+        // Admin-provisioned flow: keep credentials to share with the member
+        setLastCredentials({ email: formData.email, password: formData.password });
+        toast.success('Member created — share the login with the member');
+        setShowModal(false);
       }
-      setShowModal(false);
       resetForm();
     } catch (error: any) {
       toast.error(error || 'Operation failed');
@@ -99,6 +113,7 @@ export default function Members() {
 
   const resetForm = () => {
     setEditingMember(null);
+    setShowPassword(false);
     setFormData({
       full_name: '',
       email: '',
@@ -108,6 +123,12 @@ export default function Members() {
       trainer_id: '',
       password: 'member123',
     });
+  };
+
+  const copyCredentials = () => {
+    if (!lastCredentials) return;
+    navigator.clipboard.writeText(`Email: ${lastCredentials.email}\nPassword: ${lastCredentials.password}\nLogin at /login`);
+    toast.success('Credentials copied — share with the member');
   };
 
   const openModal = () => {
@@ -121,13 +142,30 @@ export default function Members() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-dark-900">Members</h1>
-          <p className="text-dark-500 mt-1">Manage gym members and their profiles</p>
+          <p className="text-dark-500 mt-1">Create member logins here and share the email + password with them for sign-in</p>
         </div>
         <button onClick={openModal} className="btn-primary">
           <Plus className="w-4 h-4 mr-2" />
           Add Member
         </button>
       </div>
+
+      {lastCredentials && (
+        <div className="card p-4 border-primary-500/40 bg-primary-500/5 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+          <div className="flex items-start gap-3">
+            <KeyRound className="w-5 h-5 text-primary-600 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-medium text-dark-900">Share this login with the member</p>
+              <p className="text-dark-600">Email: <span className="font-medium">{lastCredentials.email}</span> · Password: <span className="font-medium">{lastCredentials.password}</span></p>
+              <p className="text-dark-500 text-xs mt-1">They sign in at /login. No self-registration needed.</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={copyCredentials} className="btn-secondary text-sm"><Copy className="w-4 h-4 mr-1" />Copy</button>
+            <button onClick={() => setLastCredentials(null)} className="btn-ghost text-sm">Dismiss</button>
+          </div>
+        </div>
+      )}
 
       {/* Search & Filter */}
       <div className="card p-4">
@@ -307,8 +345,13 @@ export default function Members() {
                 </div>
                 {!editingMember && (
                   <div>
-                    <label className="label">Password</label>
-                    <input type="password" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} className="input" required minLength={8} />
+                    <label className="label">Login Password — share with member</label>
+                    <div className="flex gap-2">
+                      <input type={showPassword ? 'text' : 'password'} value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} className="input flex-1" required minLength={8} />
+                      <button type="button" onClick={() => setFormData({...formData, password: generatePassword()})} className="btn-secondary px-3" title="Generate password"><RefreshCw className="w-4 h-4" /></button>
+                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="btn-secondary px-3">{showPassword ? 'Hide' : 'Show'}</button>
+                    </div>
+                    <p className="text-xs text-dark-500 mt-1">Admin creates the password; member logs in with this email + password.</p>
                   </div>
                 )}
               </div>
