@@ -126,11 +126,6 @@ export default function Login() {
                 Create gym account
               </a>
             </p>
-            <p className="mt-2">
-              <a href="#" className="text-sm text-dark-500 hover:text-primary-600" onClick={(e) => { e.preventDefault(); navigate('/admin/login'); }}>
-                Administrator? Admin sign in
-              </a>
-            </p>
           </div>
         </div>
 

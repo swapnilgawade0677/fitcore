@@ -12,11 +12,9 @@ from sqlalchemy import delete as sa_delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth import (
-    create_access_token,
     get_current_active_user,
     get_password_hash,
     require_role,
-    verify_password,
 )
 from database import get_db
 from models import (
@@ -37,9 +35,7 @@ from schemas import (
     AdminCreateUserRequest,
     AdminUserUpdate,
     DashboardStats,
-    LoginRequest,
     PasswordResetRequest,
-    Token,
     UserResponse,
 )
 
@@ -79,36 +75,6 @@ async def compute_dashboard_stats(db: AsyncSession) -> DashboardStats:
         today_attendance=today_attendance or 0,
         equipment_under_maintenance=equipment_under_maintenance or 0,
     )
-
-
-# NOTE: the admin login route intentionally lives outside the role-guarded
-# router (callers are not authenticated yet).
-public_admin_router = APIRouter()
-
-
-@public_admin_router.post("/login", response_model=Token)
-async def admin_login(
-    credentials: LoginRequest,
-    db: AsyncSession = Depends(get_db),
-):
-    """Separate admin sign-in: only users with the admin role get a token."""
-    result = await db.execute(select(User).where(User.email == credentials.email))
-    user = result.scalar_one_or_none()
-    if not user or not verify_password(credentials.password, user.hashed_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    if user.role != UserRole.ADMIN:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied: administrators only",
-        )
-    access_token = create_access_token(
-        data={"sub": user.email, "user_id": user.id, "role": user.role.value}
-    )
-    return {"access_token": access_token, "token_type": "bearer"}
 
 
 @admin_router.get("/dashboard/stats", response_model=DashboardStats)

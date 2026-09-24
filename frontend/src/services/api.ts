@@ -189,8 +189,6 @@ export const dashboardApi = {
 };
 
 export const adminApi = {
-  login: (email: string, password: string) =>
-    api.post<TokenResponse>('/admin/login', { email, password }),
   getStats: () =>
     api.get<DashboardStats>('/admin/dashboard/stats'),
   listUsers: (params?: { skip?: number; limit?: number; role?: string; search?: string }) =>

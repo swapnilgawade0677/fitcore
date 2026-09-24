@@ -5,7 +5,6 @@ import { fetchCurrentUser } from './store/authSlice';
 import { fetchDashboardStats } from './store/dashboardSlice';
 import Layout from './components/Layout';
 import Login from './pages/Login';
-import AdminLogin from './pages/AdminLogin';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Members from './pages/Members';
@@ -77,7 +76,6 @@ function App() {
   return (
     <Routes>
       <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-      <Route path="/admin/login" element={<PublicRoute><AdminLogin /></PublicRoute>} />
       <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
       <Route
         path="/"

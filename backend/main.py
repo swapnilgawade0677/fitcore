@@ -9,7 +9,7 @@ from database import init_db, async_session_maker
 from models import User, UserRole, Member, MembershipPlan, MembershipStatus
 from auth import get_password_hash
 from routers import router as api_router
-from admin_routers import admin_router, public_admin_router
+from admin_routers import admin_router
 
 
 async def seed_demo_data():
@@ -87,7 +87,6 @@ app.add_middleware(
 
 app.include_router(api_router, prefix=settings.api_v1_prefix)
 app.include_router(admin_router, prefix=f"{settings.api_v1_prefix}/admin")
-app.include_router(public_admin_router, prefix=f"{settings.api_v1_prefix}/admin")
 
 
 @app.get("/")

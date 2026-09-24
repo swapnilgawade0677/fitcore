@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { User, TokenResponse, RegisterData, GymRegisterData } from '../types';
-import { authApi, adminApi } from '../services/api';
+import { authApi } from '../services/api';
 
 interface AuthState {
   user: User | null;
@@ -72,25 +72,6 @@ export const logout = createAsyncThunk('auth/logout', async () => {
   localStorage.removeItem('access_token');
 });
 
-export const adminLogin = createAsyncThunk(
-  'auth/adminLogin',
-  async (credentials: { email: string; password: string }, { rejectWithValue }) => {
-    try {
-      const response = await adminApi.login(credentials.email, credentials.password);
-      localStorage.setItem('access_token', response.data.access_token);
-      const me = await authApi.getMe();
-      if (me.data.role !== 'admin') {
-        localStorage.removeItem('access_token');
-        return rejectWithValue('Access denied: administrators only');
-      }
-      return response.data;
-    } catch (error: any) {
-      localStorage.removeItem('access_token');
-      return rejectWithValue(error.response?.data?.detail || 'Admin login failed');
-    }
-  }
-);
-
 const authSlice = createSlice({
   name: 'auth',
   initialState,
@@ -134,21 +115,6 @@ const authSlice = createSlice({
       })
       .addCase(registerGym.rejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.payload as string;
-      })
-      .addCase(adminLogin.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
-      })
-      .addCase(adminLogin.fulfilled, (state, action: PayloadAction<TokenResponse>) => {
-        state.isLoading = false;
-        state.token = action.payload.access_token;
-        state.isAuthenticated = true;
-      })
-      .addCase(adminLogin.rejected, (state, action) => {
-        state.isLoading = false;
-        state.token = null;
-        state.isAuthenticated = false;
         state.error = action.payload as string;
       })
       .addCase(fetchCurrentUser.pending, (state) => {
